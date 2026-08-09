@@ -1,0 +1,129 @@
+<style>
+/* ==========================================
+   🎨 1. สไตล์เสริมทั่วไปสำหรับตารางและฟอร์ม
+   ========================================== */
+.admin-table th { 
+  background-color: #800020; 
+  color: white; 
+}
+.form-input { 
+  border: 1px solid #d1d5db; 
+  padding: 0.5rem; 
+  border-radius: 0.375rem; 
+  width: 100%; 
+}
+
+/* ==========================================
+   🌙 2. ระบบป้องกันแสงสว่างจ้าในโหมดมืด (Dark Mode Overrides)
+   ========================================== */
+
+/* ปรับสีช่องอินพุตและช่องกรอกข้อมูลทั้งหมดในโหมดมืด */
+.dark .form-input,
+.dark select,
+.dark input,
+.dark textarea,
+.dark-mode .form-input,
+.dark-mode select,
+.dark-mode input,
+.dark-mode textarea {
+  background-color: #1f2937 !important; 
+  color: #f3f4f6 !important;            
+  border-color: #4b5563 !important;     
+}
+
+/* บังคับตัวเลือก Option ในดรอปดาวน์ให้มีพื้นหลังเข้ม คมชัด */
+.dark select option,
+.dark option,
+.dark-mode select option,
+.dark-mode option {
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+}
+
+/* ปรับกล่องกรอกข้อมูลที่ห้ามเลือก (Disabled Input) */
+.dark .form-input:disabled,
+.dark select:disabled,
+.dark-mode .form-input:disabled,
+.dark-mode select:disabled {
+  background-color: #374151 !important; 
+  color: #9ca3af !important;            
+  cursor: not-allowed;
+}
+
+/* ปรับกรอบและขอบตารางทั่วไป */
+.dark .border-gray-200,
+.dark-mode .border-gray-200 {
+  border-color: #374151 !important;
+}
+
+/* ==========================================
+   🖥️ 3. แก้ไขปัญหาจอสว่างจ้าบนหน้าจอแอดมิน (Admin Panel Fixes)
+   ========================================== */
+
+/* บังคับปิดสีขาวแผงสถิติและกล่องจัดแสดงหลักในระบบแอดมิน */
+.dark #admin-card-container,
+.dark-mode #admin-card-container {
+  background-color: #1f2937 !important; /* เปลี่ยนเป็นสีเทาเข้ม */
+  border-color: #374151 !important;     /* ขอบสีเทาเข้ม */
+  color: #f3f4f6 !important;
+}
+
+/* จัดระเบียบตัวหนังสือชื่อเรื่องของแอดมิน */
+.dark #admin-card-container h3,
+.dark-mode #admin-card-container h3 {
+  color: #f3f4f6 !important;
+}
+.dark #admin-card-container h3 i,
+.dark-mode #admin-card-container h3 i {
+  color: #fbbf24 !important; /* เปลี่ยนสัญลักษณ์ไอคอนเป็นสีเหลืองทอง */
+}
+
+/* ตัวหนังสืออธิบายในหน้าล็อกอินแอดมิน */
+.dark #admin-login-box h3,
+.dark #admin-login-box label,
+.dark-mode #admin-login-box h3,
+.dark-mode #admin-login-box label {
+  color: #ffffff !important;
+}
+.dark #admin-login-box p,
+.dark-mode #admin-login-box p {
+  color: #9ca3af !important;
+}
+
+/* ปรับแถวเนื้อหาตาราง (Table Rows) */
+.dark #adminTableBody tr,
+.dark-mode #adminTableBody tr {
+  border-bottom-color: #374151 !important;
+  background-color: transparent !important;
+}
+.dark #adminTableBody tr:hover,
+.dark-mode #adminTableBody tr:hover {
+  background-color: rgba(55, 65, 81, 0.4) !important; /* สีกระพริบนุ่มนวลเมื่อจ่อเมาส์ */
+}
+
+/* ปรับความสว่างข้อความชิ้นงานในตารางหลังบ้าน */
+.dark .admin-cell-title,
+.dark-mode .admin-cell-title {
+  color: #f3f4f6 !important;
+}
+.dark .admin-cell-subtitle,
+.dark-mode .admin-cell-subtitle {
+  color: #9ca3af !important;
+}
+.dark .admin-cell-author,
+.dark-mode .admin-cell-author {
+  color: #d1d5db !important;
+}
+
+/* ปรับสีป้ายแท็ก (Badges) ในตารางให้คมชัดสวยงาม */
+.dark .badge-degree,
+.dark-mode .badge-degree {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+.dark .badge-major,
+.dark-mode .badge-major {
+  background-color: rgba(128, 0, 32, 0.3) !important; /* พื้นสีไวน์แดงโปร่งแสง */
+  color: #fbbf24 !important; /* ข้อความสีเหลืองอำพันเด่นชัด */
+}
+</style>

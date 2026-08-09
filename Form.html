@@ -1,0 +1,264 @@
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md max-w-2xl mx-auto border border-gray-200 dark:border-gray-700 transition-colors duration-300">
+<h3 class="text-xl font-bold text-[#800020] dark:text-amber-400 mb-6 flex items-center">
+<i class="fa-solid fa-cloud-arrow-up mr-2"></i> ส่งผลงานวิทยานิพนธ์ใหม่
+</h3>
+<form id="thesisForm" onsubmit="event.preventDefault(); handleSubmitForm();" class="space-y-4">
+<!-- 1. ช่องกรอกชื่อผู้จัดทำ -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">ชื่อ-นามสกุล ผู้จัดทำ (Authors)</label>
+<div class="space-y-2">
+<input type="text" id="authorName1" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" placeholder="ผู้จัดทำคนที่ 1 (จำเป็นต้องกรอก)" required>
+<input type="text" id="authorName2" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" placeholder="ผู้จัดทำคนที่ 2 (ไม่บังคับกรอก)">
+<input type="text" id="authorName3" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" placeholder="ผู้จัดทำคนที่ 3 (ไม่บังคับกรอก)">
+</div>
+</div>
+<!-- 2. ช่องเลือกระดับปริญญา -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">ระดับปริญญา (Degree)</label>
+<select id="thesisDegree" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" required onchange="updateMajors()">
+<option value="" disabled selected>-- เลือกระดับปริญญา --</option>
+<option value="ระดับปริญญาตรี (วศ.บ.)">ระดับปริญญาตรี (วศ.บ.)</option>
+<option value="ระดับปริญญาโท (วศ.ม.)">ระดับปริญญาโท (วศ.ม.)</option>
+<option value="ระดับปริญญาเอก (ปร.ด.)">ระดับปริญญาเอก (ปร.ด.)</option>
+</select>
+</div>
+<!-- 3. ช่องกรอกหัวข้อวิทยานิพนธ์ (ภาษาไทย) -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">หัวข้อ/ชื่อวิทยานิพนธ์ (ภาษาไทย)</label>
+<input type="text" id="thesisTitleTh" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" placeholder="ระบุชื่อวิทยานิพนธ์ ภาษาไทย" required>
+</div>
+<!-- 4. ช่องกรอกหัวข้อวิทยานิพนธ์ (ภาษาอังกฤษ) -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">หัวข้อ/ชื่อวิทยานิพนธ์ (English Title)</label>
+<input type="text" id="thesisTitleEn" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" placeholder="ระบุชื่อวิทยานิพนธ์ ภาษาอังกฤษ" required>
+</div>
+<!-- 5. ช่องเลือกสาขาวิชา -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">สาขาวิชา (Department)</label>
+<select id="thesisMajor" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" required>
+<option value="" disabled selected>-- เลือกสาขาวิชา --</option>
+<option value="วิศวกรรมชีวภาพ">วิศวกรรมชีวภาพ</option>
+<option value="วิศวกรรมโยธา">วิศวกรรมโยธา</option>
+<option value="วิศวกรรมเครื่องกล">วิศวกรรมเครื่องกล</option>
+<option value="วิศวรรมการผลิต">วิศวรรมการผลิต</option>
+<option value="วิศวกรรมเมคาทรอนิกส์">วิศวกรรมเมคาทรอนิกส์</option>
+<option value="วิศวกรรมไฟฟ้า">วิศวกรรมไฟฟ้า</option>
+<option value="วิศวกรรมสิ่งแวดล้อม">วิศวกรรมสิ่งแวดล้อม</option>
+<option value="วิศวกรรมรถไฟความเร็วสูง">วิศวกรรมรถไฟความเร็วสูง</option>
+<option value="วิศวกรรมยานยนต์ไฟฟ้า">วิศวกรรมยานยนต์ไฟฟ้า</option>
+<option value="วิศวกรรมปฏิบัติ (ต่อเนื่อง)">วิศวกรรมปฏิบัติ (ต่อเนื่อง)</option>
+<option value="วิศวกรรมไฟฟ้าและคอมพิวเตอร์">วิศวกรรมไฟฟ้าและคอมพิวเตอร์</option>
+</select>
+</div>
+<!-- 6. ช่องเลือกปีที่พิมพ์ -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">ปีที่ตีพิมพ์ (Publication Year)</label>
+<select id="thesisYear" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" required>
+<option value="" disabled selected>-- เลือกปี พ.ศ. --</option>
+<option value="2569">2569</option>
+<option value="2568">2568</option>
+<option value="2567">2567</option>
+<option value="2566">2566</option>
+<option value="2565">2565</option>
+<option value="2564">2564</option>
+<option value="2563">2563</option>
+<option value="2562">2562</option>
+<option value="2561">2561</option>
+<option value="2560">2560</option>
+<option value="2559">2559</option>
+<option value="2558">2558</option>
+<option value="2557">2557</option>
+<option value="2556">2556</option>
+<option value="2555">2555</option>
+<option value="2554">2554</option>
+<option value="2553">2553</option>
+<option value="2552">2552</option>
+<option value="2551">2551</option>
+<option value="2550">2550</option>
+</select>
+</div>
+<!-- 7. ช่องกรอกชื่ออาจารย์ที่ปรึกษา (Dropdown) -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">อาจารย์ที่ปรึกษาวิทยานิพนธ์ (Advisor)</label>
+<select id="thesisAdvisor" class="form-input w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-950 dark:text-white focus:ring-2 focus:ring-[#800020] focus:outline-none" required>
+<option value="" disabled selected>-- เลือกอาจารย์ที่ปรึกษา --</option>
+</select>
+</div>
+<!-- 8. ปุ่มอัปโหลดไฟล์ PDF -->
+<div>
+<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+อัปโหลดไฟล์เล่มวิทยานิพนธ์ (Full Text PDF) <span class="text-red-500">*รับเฉพาะไฟล์ .pdf เท่านั้น</span>
+</label>
+<label for="pdfFile" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer relative group">
+<div class="space-y-1 text-center">
+<i class="fa-solid fa-file-pdf text-4xl text-red-500 mb-2 group-hover:scale-110 transition-transform"></i>
+<div class="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+<span class="font-medium text-[#800020] dark:text-amber-400">คลิกที่นี่เพื่อเลือกไฟล์ PDF</span>
+<input id="pdfFile" name="pdfFile" type="file" accept=".pdf" class="hidden" onchange="validatePDF(this)" required>
+</div>
+<p class="text-xs text-gray-500 dark:text-gray-400 mt-2" id="file-name-display">ยังไม่ได้เลือกไฟล์ (ขนาดไม่เกิน 10MB)</p>
+</div>
+</label>
+</div>
+<!-- ปุ่มส่งข้อมูล -->
+<div class="pt-4">
+<button type="submit" class="w-full bg-[#800020] text-white py-3 rounded-md font-bold text-base hover:bg-[#600018] transition-colors shadow-md flex items-center justify-center space-x-2">
+<i class="fa-solid fa-paper-plane"></i>
+<span>ส่งข้อมูลเข้าสู่ระบบ</span>
+</button>
+</div>
+</form>
+</div>
+<script>
+const majorsByDegree = {
+"ระดับปริญญาตรี (วศ.บ.)": [
+"วิศวกรรมชีวภาพและอาหาร",
+"วิศวกรรมโยธา",
+"วิศวกรรมเครื่องกล",
+"วิศวกรรมการผลิต",
+"วิศวกรรมเมคาทรอนิกส์",
+"วิศวกรรมไฟฟ้า",
+"วิศวกรรมสิ่งแวดล้อม",
+"วิศวกรรมรถไฟความเร็วสูง",
+"วิศวกรรมยานยนต์ไฟฟ้า",
+"วิศวกรรมปฏิบัติ(ต่อเนื่อง)"
+],
+"ระดับปริญญาโท (วศ.ม.)": [
+"วิศวกรรมเครื่องกล",
+"วิศวกรรมโยธา",
+"วิศวกรรมไฟฟ้าและคอมพิวเตอร์"
+],
+"ระดับปริญญาเอก (ปร.ด.)": [
+"วิศวกรรมเครื่องกล",
+"วิศวกรรมโยธา",
+"วิศวกรรมไฟฟ้าและคอมพิวเตอร์"
+]
+};
+const advisorList = [
+"ศ.ดร.วรวัฒน์ เสงี่ยมวิบูล",
+"ศ.ดร.อนงค์ฤทธิ์ แข็งแรง",
+"รศ.ดร.กริสน์ ชัยมูล",
+"รศ.ดร.กฤต โง้วธนสุวรรณ",
+"รศ.ดร.เกียรติศักดิ์ ศรีประทีป",
+"รศ.ดร.เกียรติสิน กาญจนวนิชกุล",
+"รศ.ดร.จักรมาส เลาหวณิช",
+"รศ.ดร.ชลธี โพธิ์ทอง",
+"รศ.ดร.ธีรพัฒน์ ชมภูคำ",
+"รศ.ดร.นิวัตร์ อังควิศิษฐพันธ์",
+"รศ.ดร.บพิธ บุปผโชติ",
+"รศ.ดร.พิทักษ์ พร้อมไธสง",
+"รศ.ดร.ยศฐา ศรีเทพ",
+"รศ.ดร.เรืองรุช ชีระโรจน์",
+"รศ.ดร.วสันต์ ด้วงคำจันทร์",
+"รศ.ดร.สหลาภ หอมวุฒิวงศ์",
+"รศ.ดร.สุดสาคร อินธิเดช",
+"รศ.ดร.สุพรรณ ยั่งยืน",
+"รศ.ดร.สุพรรณนิกา วัฒนะ",
+"รศ.ดร.สุรชัย วงชารี",
+"รศ.ดร.อดิศักดิ์ ปัตติยะ",
+"รศ.ดร.อภินันท์ อุรโสภณ",
+"ผศ.ดร.กิตตินันท์ วันสาสืบ",
+"ผศ.ดร.เกสร วงศ์เกษม",
+"ผศ.ดร.คเณศ ถุงออด",
+"ผศ.ดร.จินดาพร จำรัสเลิศลักษณ์",
+"ผศ.ดร.ชัยชาญ โชติถนอม",
+"ผศ.ดร.ชัยยงค์ เสริมผล",
+"ผศ.ดร.เชิดพงษ์ เชี่ยวชาญวัฒนา",
+"ผศ.ดร.ณัฐพล ภูมิสะอาด",
+"ผศ.ดร.ณัฐวุฒิ สุวรรณทา",
+"ผศ.ดร.ทรงชัย วิริยะอำไพวงศ์",
+"ผศ.ดร.ธนายุทธ ไชยธงรัตน์",
+"ผศ.ดร.ธวัฒน์ชัย คุณะโคตร",
+"ผศ.ดร.ธีรยุทธ ชาติชนะยืนยง",
+"ผศ.ดร.นรินทร์ ศิริวรรณ",
+"ผศ.ดร.นเรศ มีโส",
+"ผศ.ดร.นบปนม แก้วหานาม",
+"ผศ.ดร.นพปฎล เสงี่ยมศักดิ์",
+"ผศ.ดร.นวรัตน์ พิลาแดง",
+"ผศ.ดร.นิดา ชัยมูล",
+"ผศ.ดร.บัญชา วัฒนะ",
+"ผศ.ดร.ปริญญ์ ชุปวา",
+"ผศ.ดร.ปิยณัฐ จันโทสุทธิ์",
+"ผศ.ดร.เพชร เพ็งชัย",
+"ผศ.ดร.พงษ์พันธ์ แทนเกษม",
+"ผศ.ดร.รัตนา หอมวิเชียร",
+"ผศ.ดร.ละมุด วิเศษ",
+"ผศ.ดร.วจัสกร กาญจนะ",
+"ผศ.ดร.ศตวรรษ ทวงชน",
+"ผศ.ดร.ศิวา แก้วปลั่ง",
+"ผศ.ดร.สริญญา ศาลางาม",
+"ผศ.ดร.โสภา แคนสี",
+"ผศ.ดร.อลงกรณ์ ละม่อม",
+"อ.ดร.ชณัฐ วิพัทนะพร",
+"อ.ดร.ณรงค์กรณ์ อุทาทิพย์",
+"อ.ดร.ณัฎฐพล ไชยดวงศรี",
+"อ.ดร.รพีภัทร เตชะรุ่งเรืองสกุล",
+"อ.ดร.ทวีศักดิ์ ทองแสน",
+"อ.กฤษฏิ์ เลิศล้ำ",
+"อ.บัณริ เข็มกลัดมุกต์",
+"อ.ณัฐนิชา อิ่มน้ำขาว",
+"อ.ณัฏฐพงษ์ ลาดบัตร",
+"อ.เดชา อินทร์โท่โล่",
+"อ.สุรพงษ์ ลิวโธสง"
+];
+
+function updateMajors() {
+const degreeSelect = document.getElementById("thesisDegree");
+const majorSelect = document.getElementById("thesisMajor");
+const selectedDegree = degreeSelect.value;
+majorSelect.innerHTML = '<option value="" disabled selected>-- เลือกสาขาวิชา --</option>';
+if (selectedDegree && majorsByDegree[selectedDegree]) {
+majorSelect.disabled = false;
+majorSelect.classList.remove("bg-gray-100", "dark:bg-gray-700");
+majorSelect.classList.add("bg-white", "dark:bg-gray-800");
+majorsByDegree[selectedDegree].forEach(function(major) {
+const option = document.createElement("option");
+option.value = major;
+option.textContent = major;
+majorSelect.appendChild(option);
+});
+} else {
+majorSelect.disabled = true;
+majorSelect.classList.remove("bg-white", "dark:bg-gray-800");
+majorSelect.classList.add("bg-gray-100", "dark:bg-gray-700");
+majorSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกระดับปริญญาก่อน --</option>';
+}
+}
+function loadAdvisors() {
+const advisorSelect = document.getElementById("thesisAdvisor");
+if (!advisorSelect) return;
+advisorList.forEach(function(advisor) {
+const option = document.createElement("option");
+option.value = advisor;
+option.textContent = advisor;
+advisorSelect.appendChild(option);
+});
+}
+document.addEventListener("DOMContentLoaded", function() {
+loadAdvisors();
+});
+function validatePDF(input) {
+const file = input.files[0];
+const display = document.getElementById('file-name-display');
+if (file) {
+const fileName = file.name;
+const fileExtension = fileName.split('.').pop().toLowerCase();
+if (fileExtension !== 'pdf') {
+alert('❌ ปฏิเสธไฟล์: ระบบอนุญาตให้ส่งเฉพาะไฟล์รูปแบบ .pdf เท่านั้นเพื่อความปลอดภัยของระบบ!');
+input.value = '';
+display.innerText = 'ยังไม่ได้เลือกไฟล์ (ขนาดไม่เกิน 10MB)';
+display.className = 'text-xs text-gray-500';
+return;
+}
+if (file.size > 10 * 1024 * 1024) {
+alert('❌ ไฟล์มีขนาดใหญ่เกินไป: จำกัดขนาดไฟล์ PDF ไม่เกิน 10MB ครับ');
+input.value = '';
+display.innerText = 'ยังไม่ได้เลือกไฟล์ (ขนาดไม่เกิน 10MB)';
+display.className = 'text-xs text-gray-500';
+return;
+}
+display.innerText = `📄 เลือกไฟล์สำเร็จ: ${fileName}`;
+display.className = 'text-sm font-semibold text-green-600 dark:text-green-400';
+}
+}
+</script>

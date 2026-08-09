@@ -1,0 +1,232 @@
+<script>
+    if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    }
+    
+    // 📂 คลังข้อมูลรายชื่อสาขาแยกตามระดับปริญญา (สำหรับหน้ากรองข้อมูล/ค้นหา)
+    const majorData = {
+        bachelor: [
+            "วิศวกรรมชีวภาพและอาหาร", "วิศวกรรมโยธา", "วิศวกรรมเครื่องกล",
+            "วิศวกรรมการผลิต", "วิศวกรรมเมคาทรอนิกส์", "วิศวกรรมไฟฟ้า",
+            "วิศวกรรมสิ่งแวดล้อม", "วิศวกรรมรถไฟความเร็วสูง",
+            "วิศวกรรมยานยนต์ไฟฟ้า", "วิศวกรรมปฏิบัติ (ต่อเนื่อง)"
+        ],
+        master: [
+            "วิศวกรรมเครื่องกล", "วิศวกรรมโยธา", "วิศวกรรมไฟฟ้าและคอมพิวเตอร์"
+        ],
+        doctor: [
+            "วิศวกรรมเครื่องกล", "วิศวกรรมโยธา", "วิศวกรรมไฟฟ้าและคอมพิวเตอร์"
+        ]
+    };
+    
+    // ตัวแปลงค่าสำหรับจับคู่กับคำใน Google Sheet (คอลัมน์ D)
+    const degreeMap = {
+        'bachelor': 'ระดับปริญญาตรี (วศ.บ.)',
+        'master': 'ระดับปริญญาโท (วศ.ม.)',
+        'doctor': 'ระดับปริญญาเอก (ปร.ด.)'
+    };
+    
+    let allTheses = [];
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        initTheme();
+        populateYearFilter(); 
+        updateMajorOptions();
+        loadThesisData();
+        setupFilters();
+    });
+
+    function populateYearFilter() {
+        const yearFilter = document.getElementById('yearFilter');
+        if (!yearFilter) return;
+       
+        yearFilter.innerHTML = '<option value="all">-- ทั้งหมด (All) --</option>';
+        for (let year = 2568; year >= 2550; year--) {
+            const option = document.createElement('option');
+            option.value = String(year);
+            option.textContent = String(year);
+            yearFilter.appendChild(option);
+        }
+    }
+
+    function updateMajorOptions() {
+        const degreeSelect = document.getElementById('degreeFilter').value;
+        const majorSelect = document.getElementById('majorFilter');
+        if (!majorSelect) return;
+       
+        majorSelect.innerHTML = '<option value="all">-- ทั้งหมด (All) --</option>';
+       
+        if (degreeSelect !== 'all' && majorData[degreeSelect]) {
+            majorData[degreeSelect].forEach(major => {
+                const option = document.createElement('option');
+                option.value = major;
+                option.textContent = major;
+                majorSelect.appendChild(option);
+            });
+        } else {
+            const allUniqueMajors = new Set();
+            Object.values(majorData).forEach(list => list.forEach(m => allUniqueMajors.add(m)));
+            allUniqueMajors.forEach(major => {
+                const option = document.createElement('option');
+                option.value = major;
+                option.textContent = major;
+                majorSelect.appendChild(option);
+            });
+        }
+    }
+
+    function loadThesisData() {
+        google.script.run
+            .withSuccessHandler(renderData)
+            .withFailureHandler(handleError)
+            .getThesisData();
+    }
+
+    function renderData(data) {
+        if (data.error) {
+            handleError(data.error);
+            return;
+        }
+        allTheses = data;
+        document.getElementById('loadingState').classList.add('hidden');
+        filterAndDisplay();
+    }
+
+    function filterAndDisplay() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const selectedDegree = document.getElementById('degreeFilter').value;
+        const selectedMajor = document.getElementById('majorFilter').value;
+        const selectedYear = document.getElementById('yearFilter').value;
+       
+        const grid = document.getElementById('thesisGrid');
+        const emptyState = document.getElementById('emptyState');
+       
+        const filtered = allTheses.filter(thesis => {
+            const matchSearch =
+                (thesis.Title && thesis.Title.toLowerCase().includes(searchText)) ||
+                (thesis.Author && thesis.Author.toLowerCase().includes(searchText)) ||
+                (thesis.ID && thesis.ID.toLowerCase().includes(searchText));
+               
+            const matchDegree = (selectedDegree === 'all' || thesis.Degree === degreeMap[selectedDegree]);
+            const matchMajor = (selectedMajor === 'all' || thesis.Department === selectedMajor);
+            const matchYear = (selectedYear === 'all' || String(thesis.Year) === String(selectedYear));
+           
+            return matchSearch && matchDegree && matchMajor && matchYear && thesis.Status !== 'Hidden';
+        });
+
+        if (filtered.length === 0) {
+            grid.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        emptyState.classList.add('hidden');
+        grid.classList.remove('hidden');
+        grid.innerHTML = '';
+        
+        filtered.forEach(thesis => {
+            const coverImg = thesis.Cover_URL || 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=300&auto=format&fit=crop';
+           
+            const cardHTML = `
+                <div class="thesis-card bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full shadow-sm">
+                    <div class="relative pt-[130%] bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 group">
+                        <img src="${coverImg}" alt="Cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=300&auto=format&fit=crop';" class="absolute inset-0 w-full h-full object-contain p-2">
+                        <!-- 🆕 กล่องสถิติเข้าชม/ดาวน์โหลด แสดงเมื่อเอาเมาส์ไปวางบริเวณหน้าปก -->
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-end justify-end p-3 pointer-events-none">
+                            <div class="bg-gray-700/95 text-white text-xs rounded-lg shadow-lg px-3 py-2 space-y-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <div class="flex items-center space-x-2 whitespace-nowrap">
+                                    <i class="fa-solid fa-eye text-gray-300 w-3"></i>
+                                    <span>เข้าชม</span>
+                                    <span class="font-bold ml-auto pl-3">${thesis.View_Count || 0}</span>
+                                </div>
+                                <div class="flex items-center space-x-2 whitespace-nowrap">
+                                    <i class="fa-solid fa-download text-gray-300 w-3"></i>
+                                    <span>ดาวน์โหลด</span>
+                                    <span class="font-bold ml-auto pl-3">${thesis.Download_Count || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm line-clamp-2 mb-1">
+                            ${thesis.Title}
+                        </h3>
+                        ${thesis.TitleEn ? `<p class="text-xs italic text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">${thesis.TitleEn}</p>` : '<div class="mb-3"></div>'}
+                        <div class="space-y-1 text-xs text-gray-600 dark:text-gray-300 mb-4 flex-grow">
+                            <p><strong class="text-gray-800 dark:text-gray-200">ผู้แต่ง:</strong> ${thesis.Author || 'ไม่ระบุ'}</p>
+                            <p><strong class="text-gray-800 dark:text-gray-200">ระดับ:</strong> ${thesis.Degree || '-'}</p>
+                            <p><strong class="text-gray-800 dark:text-gray-200">สาขาวิชา:</strong> ${thesis.Department || 'ทั่วไป'}</p>
+                            <p><strong class="text-gray-800 dark:text-gray-200">ปีที่ตีพิมพ์:</strong> ${thesis.Year || '-'}</p>
+                            <p><strong class="text-gray-800 dark:text-gray-200">ที่ปรึกษา:</strong> ${thesis.Advisor || 'ไม่ระบุ'}</p>
+                        </div>
+                       
+                        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                            <button onclick="openThesis('${thesis.ID}')" class="bg-[#FFB800] hover:bg-[#E5A500] text-gray-950 font-bold py-2 px-2 rounded text-xs flex items-center justify-center space-x-1 transition-colors">
+                                <i class="fa-solid fa-book-open"></i> <span>เปิดอ่าน</span>
+                            </button>
+                            <a href="${thesis.PDF_URL || '#'}" target="_blank" onclick="trackDownload('${thesis.ID}')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-2 rounded text-xs flex items-center justify-center space-x-1 transition-colors text-center ${!thesis.PDF_URL ? 'opacity-50 pointer-events-none' : ''}">
+                                <i class="fa-solid fa-download"></i> <span>ดาวน์โหลด</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.insertAdjacentHTML('beforeend', cardHTML);
+        });
+    }
+
+    function setupFilters() {
+        document.getElementById('searchInput').addEventListener('input', filterAndDisplay);
+        document.getElementById('degreeFilter').addEventListener('change', () => {
+            updateMajorOptions();
+            filterAndDisplay();
+        });
+        document.getElementById('majorFilter').addEventListener('change', filterAndDisplay);
+        document.getElementById('yearFilter').addEventListener('change', filterAndDisplay);
+    }
+
+    function openThesis(id) {
+        google.script.run.incrementViewCount(id);
+        const thesis = allTheses.find(t => t.ID === id);
+        if (!thesis || !thesis.PDF_URL) {
+            alert("ขออภัย ไม่พบลิงก์เอกสารไฟล์ PDF สำหรับวิทยานิพนธ์เล่มนี้");
+            return;
+        }
+        if (thesis.Flipbook_URL) {
+            window.top.location.href = thesis.Flipbook_URL;
+        } else {
+            google.script.run.withSuccessHandler((webAppUrl) => {
+                const targetUrl = `${webAppUrl}?page=flipbook&pdf=${encodeURIComponent(thesis.PDF_URL)}&title=${encodeURIComponent(thesis.Title)}`;
+                window.top.location.href = targetUrl;
+            }).getWebAppUrl();
+        }
+    }
+
+    function trackDownload(id) {
+        google.script.run.incrementDownloadCount(id);
+    }
+
+    function initTheme() {
+        const toggleBtn = document.getElementById('themeToggle');
+        const icon = document.getElementById('themeIcon');
+        if (!toggleBtn) return;
+       
+        const isDarkState = document.body.classList.contains('dark-mode') || document.body.classList.contains('dark');
+        if (isDarkState) {
+            document.body.classList.add('dark', 'dark-mode');
+            if (icon) icon.className = 'fa-solid fa-sun text-xl';
+        }
+        toggleBtn.onclick = () => {
+            document.body.classList.toggle('dark');
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark');
+            icon.className = isDark ? 'fa-solid fa-sun text-xl' : 'fa-solid fa-moon text-xl';
+        };
+    }
+
+    function handleError(error) {
+        console.error("Error:", error);
+    }
+</script>

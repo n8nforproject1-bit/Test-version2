@@ -1,0 +1,22 @@
+<style>
+  /* 🎨 สไตล์ตกแต่งเพิ่มเติมสำหรับระบบคลังวิทยานิพนธ์ */
+  .thesis-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .thesis-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 20px -10px rgba(128, 0, 32, 0.15);
+  }
+
+  /* รองรับการปรับเปลี่ยนหน้าตาโหมดสีเข้ม (Dark Mode Base Rules) */
+  body.dark {
+    background-color: #111827;
+    color: #f3f4f6;
+  }
+
+  .dark .filter-box {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+</style>

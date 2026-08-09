@@ -1,0 +1,561 @@
+<script>
+// ==========================================
+// 📢 ระบบแจ้งเตือน (Beautiful Toast System - ถอดแบบดีไซน์จากภาพ image_2ee29a.jpg)
+// ==========================================
+function showToast(message, type = 'success') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none';
+    document.body.appendChild(container);
+  }
+  
+  const existingToast = document.getElementById('custom-toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+  
+  const toast = document.createElement('div');
+  toast.id = 'custom-toast';
+  toast.className = 'flex items-center p-3.5 px-5 rounded-lg shadow-xl pointer-events-auto transition-all duration-300 transform translate-y-4 opacity-0 text-white font-medium text-sm min-w-[300px] max-w-sm';
+  
+  let bgClass = 'bg-emerald-600'; 
+  let icon = '<span class="flex items-center justify-center w-5 h-5 bg-white text-emerald-600 rounded-full text-xs font-bold mr-2.5 shadow-sm"><i class="fa-solid fa-check"></i></span>';
+  
+  if (type === 'error') {
+    bgClass = 'bg-rose-600'; 
+    icon = '<span class="flex items-center justify-center w-5 h-5 bg-white text-rose-600 rounded-full text-xs font-bold mr-2.5 shadow-sm"><i class="fa-solid fa-xmark"></i></span>';
+  } else if (type === 'warning') {
+    bgClass = 'bg-amber-500'; 
+    icon = '<span class="flex items-center justify-center w-5 h-5 bg-white text-amber-500 rounded-full text-xs font-bold mr-2.5 shadow-sm"><i class="fa-solid fa-exclamation"></i></span>';
+  }
+  
+  toast.classList.add(bgClass);
+  toast.innerHTML = `<div class="flex items-center w-full">${icon}<span class="flex-1">${message}</span></div>`;
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.remove('translate-y-4', 'opacity-0');
+  }, 50);
+  
+  setTimeout(() => {
+    toast.classList.add('translate-y-[-10px]', 'opacity-0');
+    setTimeout(() => {
+      toast.remove();
+      if (container.children.length === 0) {
+        container.remove();
+      }
+    }, 300);
+  }, 4000);
+}
+
+// ==========================================
+// ❓ ระบบกล่องยืนยันอนุมัติแบบกำหนดเอง (Custom Confirm Modal)
+// ==========================================
+let pendingApproveRowId = null;
+function showConfirmModal(rowId, thesisTitle) {
+  pendingApproveRowId = rowId;
+  let modal = document.getElementById('custom-confirm-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'custom-confirm-modal';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300 opacity-0 pointer-events-none';
+    modal.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-all duration-300">
+        <div class="p-6 text-center">
+          <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-circle-question text-3xl"></i>
+          </div>
+          <h4 class="text-lg font-bold text-gray-800 dark:text-white mb-2">ยืนยันการอนุมัติผลงาน</h4>
+          <p id="confirm-modal-text" class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-2"></p>
+          <div class="flex space-x-3">
+            <button onclick="closeConfirmModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-white font-bold py-2.5 rounded-lg transition-colors text-sm">
+              ยกเลิก
+            </button>
+            <button onclick="executeApprove()" class="flex-1 bg-[#800020] hover:bg-[#600018] text-white font-bold py-2.5 rounded-lg transition-colors text-sm shadow-md">
+              <i class="fa-solid fa-circle-check mr-1"></i> ยืนยันอนุมัติ
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  const safeTitle = String(thesisTitle).replace(/['"\\`]/g, ' ');
+  document.getElementById('confirm-modal-text').innerHTML = `คุณแน่ใจหรือไม่ที่จะอนุมัติผลงานเรื่อง <br><strong class="text-gray-800 dark:text-amber-400 italic">"${safeTitle}"</strong> <br>เข้าสู่หน้าจัดแสดงหลัก?`;
+  modal.classList.remove('opacity-0', 'pointer-events-none');
+  modal.querySelector('div').classList.remove('scale-95');
+}
+
+function closeConfirmModal() {
+  const modal = document.getElementById('custom-confirm-modal');
+  if (modal) {
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modal.querySelector('div').classList.add('scale-95');
+  }
+  pendingApproveRowId = null;
+}
+
+// ==========================================
+// ❌ ระบบกล่องยืนยัน "ไม่อนุมัติ" แบบกำหนดเอง (Custom Reject Modal)
+// ==========================================
+let pendingRejectRowId = null;
+function showRejectModal(rowId, thesisTitle) {
+  pendingRejectRowId = rowId;
+  let modal = document.getElementById('custom-reject-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'custom-reject-modal';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300 opacity-0 pointer-events-none';
+    modal.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-all duration-300">
+        <div class="p-6 text-center">
+          <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-circle-xmark text-3xl"></i>
+          </div>
+          <h4 class="text-lg font-bold text-gray-800 dark:text-white mb-2">ยืนยันปฏิเสธการอนุมัติ</h4>
+          <p id="reject-modal-text" class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-2"></p>
+          <div class="flex space-x-3">
+            <button onclick="closeRejectModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-white font-bold py-2.5 rounded-lg transition-colors text-sm">
+              ยกเลิก
+            </button>
+            <button onclick="executeReject()" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-lg transition-colors text-sm shadow-md">
+              <i class="fa-solid fa-ban mr-1"></i> ยืนยันไม่อนุมัติ
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  const safeTitle = String(thesisTitle).replace(/['"\\`]/g, ' ');
+  document.getElementById('reject-modal-text').innerHTML = `คุณแน่ใจหรือไม่ที่จะปฏิเสธผลงานเรื่อง <br><strong class="text-gray-800 dark:text-rose-400 italic">"${safeTitle}"</strong>? <br>ข้อมูลจะยังคงอยู่ในฐานข้อมูลแต่ไม่ไปโชว์ที่หน้าแรก`;
+  modal.classList.remove('opacity-0', 'pointer-events-none');
+  modal.querySelector('div').classList.remove('scale-95');
+}
+
+function closeRejectModal() {
+  const modal = document.getElementById('custom-reject-modal');
+  if (modal) {
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modal.querySelector('div').classList.add('scale-95');
+  }
+  pendingRejectRowId = null;
+}
+
+// ==========================================
+// 🔐 1. ระบบควบคุมการเข้าสู่ระบบแอดมิน
+// ==========================================
+function checkAdminLogin() {
+  const adminPasswordInput = document.getElementById('adminPassword');
+  if (!adminPasswordInput) return;
+  const inputPass = adminPasswordInput.value;
+  if (!inputPass) {
+    showToast('กรุณากรอกรหัสผ่านก่อนครับ', 'warning');
+    return;
+  }
+  
+  const loginBtn = document.querySelector('#admin-login-box button');
+  const originalBtnText = loginBtn ? loginBtn.innerHTML : '';
+  if (loginBtn) {
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-2"></i> กำลังล็อกอิน...`;
+  }
+  
+  google.script.run
+    .withSuccessHandler(function(isMatch) {
+      if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = originalBtnText;
+      }
+      if (isMatch) {
+        showToast('🔓 เข้าสู่ระบบแอดมินเรียบร้อยแล้ว!', 'success');
+        document.getElementById('admin-login-box').style.display = 'none';
+        document.getElementById('admin-dashboard-box').style.display = 'block';
+        loadPendingSubmissions(); 
+        loadAdminStats();         
+        adminPasswordInput.value = '';
+      } else {
+        showToast('❌ รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง', 'error');
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = originalBtnText;
+      }
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message, 'error');
+    })
+    .checkAdminPasswordFromServer(inputPass);
+}
+
+function logoutAdmin() {
+  document.getElementById('admin-dashboard-box').style.display = 'none';
+  document.getElementById('admin-login-box').style.display = 'block';
+  const tbody = document.getElementById('adminTableBody');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td class="p-4 text-center text-gray-500" colspan="6">ออกจากระบบเรียบร้อยแล้ว</td>
+      </tr>
+    `;
+  }
+  showToast('🔒 ออกจากระบบแอดมินเรียบร้อยแล้ว', 'success');
+}
+
+// ==========================================
+// 📊 2. ดึงสถิติภาพรวมแดชบอร์ด
+// ==========================================
+function loadAdminStats() {
+  const statsBox = document.getElementById('adminStatsBox');
+  if (!statsBox) return;
+  google.script.run
+    .withSuccessHandler(function(stats) {
+      const pending = document.getElementById('statPending');
+      const approved = document.getElementById('statApproved');
+      const rejected = document.getElementById('statRejected'); // 🆕 ดึง Element สำหรับแสดงยอดไม่อนุมัติ
+      const total = document.getElementById('statTotal');
+      if (pending) pending.textContent = stats.pending;
+      if (approved) approved.textContent = stats.approved;
+      if (rejected) rejected.textContent = stats.rejected;     // 🆕 วาดค่าตัวเลขไม่อนุมัติลงหน้าจอ
+      if (total) total.textContent = stats.total;
+    })
+    .withFailureHandler(function(err) {
+      console.error('โหลดสถิติแอดมินไม่สำเร็จ:', err);
+    })
+    .getAdminStats();
+}
+
+// ==========================================
+// 📊 3. ดึงรายชื่อรอตรวจสอบเพื่อเรนเดอร์ตาราง (ผูกคลาส CSS ย่อยแก้สีจมในโหมดมืด)
+// ==========================================
+function loadPendingSubmissions() {
+  const tbody = document.getElementById('adminTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = `
+    <tr>
+      <td class="p-8 text-center text-gray-500 font-medium" colspan="6">
+        <div class="flex flex-col items-center justify-center space-y-2">
+          <i class="fa-solid fa-spinner animate-spin text-3xl text-[#800020] dark:text-amber-400"></i>
+          <span>กำลังค้นหาข้อมูลวิทยานิพนธ์ "รอตรวจสอบ" ล่าสุด...</span>
+        </div>
+      </td>
+    </tr>
+  `;
+  
+  google.script.run
+    .withSuccessHandler(function(dataList) {
+      try {
+        if (!dataList || dataList.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td class="p-8 text-center text-emerald-600 font-bold" colspan="6">
+                <div class="flex flex-col items-center justify-center space-y-2">
+                  <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl">
+                    <i class="fa-solid fa-circle-check"></i>
+                  </div>
+                  <span>ไม่มีรายการค้าง "รอตรวจสอบ" ในขณะนี้ครับ</span>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        let html = '';
+        dataList.forEach(function(row) {
+          const rowId = row.rowId || "";
+          const author = row.author || "ไม่ระบุผู้แต่ง";
+          const degree = row.degree || "ไม่ระบุ";
+          const major = row.major || "ไม่ระบุสาขา"; 
+          const titleTh = row.titleTh || "ไม่มีชื่อเรื่องภาษาไทย";
+          const titleEn = row.titleEn || "";
+          const pdfUrl = row.pdfUrl || "#";
+          const safeTitle = String(titleTh).replace(/['"\\`]/g, ' ');
+          
+          html += `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-750/50 border-b border-gray-200 dark:border-gray-700 transition-colors">
+              <td class="p-4 font-semibold text-gray-800 dark:text-gray-100 max-w-sm">
+                <div class="admin-cell-title text-sm line-clamp-2 leading-relaxed">${titleTh}</div>
+                <div class="admin-cell-subtitle text-xs text-gray-400 dark:text-gray-400 font-normal italic mt-1 line-clamp-2">${titleEn}</div>
+              </td>
+              <td class="p-4 text-gray-600 dark:text-gray-300 text-sm">
+                <div class="admin-cell-author font-medium">${author}</div>
+              </td>
+              <td class="p-4 text-gray-500 dark:text-gray-400 text-sm font-medium">
+                <span class="badge-degree inline-block px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300">${degree}</span>
+              </td>
+              <td class="p-4 text-gray-500 dark:text-gray-400 text-sm font-medium">
+                <span class="badge-major inline-block px-2.5 py-1 bg-[#800020]/10 dark:bg-[#800020]/30 rounded-full text-xs text-[#800020] dark:text-amber-400">${major}</span>
+              </td>
+              <td class="p-4">
+                <a href="${pdfUrl}" target="_blank" class="inline-flex items-center px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded font-bold text-xs transition-colors shadow-sm border border-rose-200 dark:border-rose-800/40">
+                  <i class="fa-solid fa-file-pdf mr-1.5 text-base"></i> เปิดตรวจ
+                </a>
+              </td>
+              <td class="p-4 text-center">
+                <div class="flex items-center justify-center space-x-1.5">
+                  <button onclick="showConfirmModal('${rowId}', '${safeTitle}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-lg text-xs transition-all shadow hover:shadow-md transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-circle-check"></i> อนุมัติ
+                  </button>
+                  <button onclick="showRejectModal('${rowId}', '${safeTitle}')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-2 rounded-lg text-xs transition-all shadow hover:shadow-md transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-ban"></i> ไม่อนุมัติ
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      } catch (innerErr) {
+        tbody.innerHTML = `
+          <tr>
+            <td class="p-6 text-center text-rose-600 font-bold" colspan="6">
+              <i class="fa-solid fa-triangle-exclamation mr-2 text-xl"></i>หน้าบ้านเรนเดอร์ตารางพัง: ${innerErr.message}
+            </td>
+          </tr>
+        `;
+      }
+    })
+    .withFailureHandler(function(err) {
+      tbody.innerHTML = `
+        <tr>
+          <td class="p-6 text-center text-rose-600 font-bold" colspan="6">
+            <div class="max-w-lg mx-auto bg-rose-50 dark:bg-rose-950/10 p-4 rounded-lg border border-rose-200 dark:border-rose-900/40 text-left">
+              <p class="text-rose-700 dark:text-rose-400 font-bold mb-1"><i class="fa-solid fa-circle-exclamation mr-1"></i> เซิร์ฟเวอร์ส่งข้อผิดพลาดกลับมา (Apps Script Error):</p>
+              <code class="text-xs text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/40 p-2 rounded block whitespace-pre-wrap">${err.message}</code>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .getPendingThesesData();
+}
+
+// ==========================================
+// 🔄 4. ส่งอนุมัติงานและรีเฟรชหน้าหลักทันที
+// ==========================================
+function executeApprove() {
+  if (!pendingApproveRowId) return;
+  const modal = document.getElementById('custom-confirm-modal');
+  const approveBtn = modal ? modal.querySelector('button[onclick="executeApprove()"]') : null;
+  let originalText = '';
+  
+  if (approveBtn) {
+    originalText = approveBtn.innerHTML;
+    approveBtn.disabled = true;
+    approveBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i> กำลังบันทึก...`;
+  }
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      if (approveBtn) {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalText;
+      }
+      closeConfirmModal();
+      showToast("✅ อนุมัติสำเร็จ! ผลงานย้ายเข้าระบบคลังหลักเรียบร้อยแล้ว", "success");
+      loadPendingSubmissions(); 
+      loadAdminStats();         
+      
+      if (typeof loadThesisData === 'function') {
+        loadThesisData();
+      } else if (typeof fetchAndRenderTheses === 'function') {
+        fetchAndRenderTheses();
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (approveBtn) {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalText;
+      }
+      closeConfirmModal();
+      showToast("❌ อนุมัติไม่สำเร็จ: " + err.message, "error");
+    })
+    .updateStatusToApproved(pendingApproveRowId);
+}
+
+// ==========================================
+// ❌ 4.1 ฟังก์ชันส่งปฏิเสธงาน (ไม่อนุมัติ) และอัปเดตหน้าแอดมินทันที
+// ==========================================
+function executeReject() {
+  if (!pendingRejectRowId) return;
+  const modal = document.getElementById('custom-reject-modal');
+  const rejectBtn = modal ? modal.querySelector('button[onclick="executeReject()"]') : null;
+  let originalText = '';
+  
+  if (rejectBtn) {
+    originalText = rejectBtn.innerHTML;
+    rejectBtn.disabled = true;
+    rejectBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i> กำลังปฏิเสธ...`;
+  }
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      if (rejectBtn) {
+        rejectBtn.disabled = false;
+        rejectBtn.innerHTML = originalText;
+      }
+      closeRejectModal();
+      showToast("❌ ปฏิเสธเรียบร้อย! ข้อมูลได้รับการบันทึกเป็น 'ไม่อนุมัติ'", "success");
+      loadPendingSubmissions(); 
+      loadAdminStats();         
+      
+      if (typeof loadThesisData === 'function') {
+        loadThesisData();
+      } else if (typeof fetchAndRenderTheses === 'function') {
+        fetchAndRenderTheses();
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (rejectBtn) {
+        rejectBtn.disabled = false;
+        rejectBtn.innerHTML = originalText;
+      }
+      closeRejectModal();
+      showToast("❌ การปฏิเสธล้มเหลว: " + err.message, "error");
+    })
+    .updateStatusToRejected(pendingRejectRowId);
+}
+
+// ==========================================
+// 📝 5. ส่งฟอร์มข้อมูลของนิสิตไปยังหลังบ้าน
+// ==========================================
+function handleSubmitForm() {
+  const submitBtn = document.querySelector('#thesisForm button[type="submit"]');
+  if (!submitBtn) return;
+  const originalBtnText = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-2"></i> กำลังอัปโหลดและบันทึกข้อมูล...`;
+
+  const authors = [];
+  if(document.getElementById('authorName1') && document.getElementById('authorName1').value.trim()) {
+    authors.push(document.getElementById('authorName1').value.trim());
+  }
+  if(document.getElementById('authorName2') && document.getElementById('authorName2').value.trim()) {
+    authors.push(document.getElementById('authorName2').value.trim());
+  }
+  if(document.getElementById('authorName3') && document.getElementById('authorName3').value.trim()) {
+    authors.push(document.getElementById('authorName3').value.trim());
+  }
+  const authorString = authors.join(', ');
+
+  const fileInput = document.getElementById('pdfFile');
+  const file = fileInput ? fileInput.files[0] : null;
+  if (!file) {
+    showToast('❌ กรุณาอัปโหลดไฟล์เล่มวิทยานิพนธ์เต็มรูปแบบ (.pdf)', 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnText;
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const fileData = {
+      base64: e.target.result.split(',')[1],
+      mimeType: file.type,
+      fileName: file.name
+    };
+
+    const formData = {
+      author: authorString,
+      degree: document.getElementById('thesisDegree') ? document.getElementById('thesisDegree').value : '',
+      titleTh: document.getElementById('thesisTitleTh') ? document.getElementById('thesisTitleTh').value : '',
+      titleEn: document.getElementById('thesisTitleEn') ? document.getElementById('thesisTitleEn').value : '',
+      major: document.getElementById('thesisMajor') ? document.getElementById('thesisMajor').value : '',
+      year: document.getElementById('thesisYear') ? document.getElementById('thesisYear').value : '',
+      abstract: document.getElementById('thesisAbstract') ? document.getElementById('thesisAbstract').value : '',
+      advisor: document.getElementById('thesisAdvisor') ? document.getElementById('thesisAdvisor').value : ''
+    };
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        showToast('🎉 ส่งผลงานสำเร็จ! ข้อมูลได้เข้าสู่คลังรอตรวจเรียบร้อยแล้ว', 'success');
+        if (document.getElementById('thesisForm')) {
+          document.getElementById('thesisForm').reset();
+        }
+        if (document.getElementById('file-name-display')) {
+          document.getElementById('file-name-display').innerText = 'ยังไม่ได้เลือกไฟล์ (ขนาดไม่เกิน 10MB)';
+          document.getElementById('file-name-display').className = 'text-xs text-gray-500';
+        }
+        if (typeof switchTab === 'function') {
+          switchTab('main-content-section');
+        }
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      })
+      .withFailureHandler(function(err) {
+        showToast('❌ เกิดข้อผิดพลาดฝั่งเซิร์ฟเวอร์: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      })
+      .saveSubmissionFromForm(formData, fileData); 
+  };
+  
+  reader.onerror = function() {
+    showToast('เกิดข้อผิดพลาดขณะอ่านไฟล์ PDF', 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnText;
+  };
+  reader.readAsDataURL(file);
+}
+</script>
+
+<script>
+// ==========================================
+// ฐานข้อมูลฟอร์มส่งงาน: สาขาวิชา แบ่งตามระดับปริญญา
+// ==========================================
+const majorsByDegree = {
+  "ระดับปริญญาตรี (วศ.บ.)": [
+    "วิศวกรรมชีวภาพและอาหาร",
+    "วิศวกรรมโยธา",
+    "วิศวกรรมเครื่องกล",
+    "วิศวกรรมการผลิต",
+    "วิศวกรรมเมคาทรอนิกส์",
+    "วิศวกรรมไฟฟ้า",
+    "วิศวกรรมสิ่งแวดล้อม",
+    "วิศวกรรมรถไฟความเร็วสูง",
+    "วิศวกรรมยานยนต์ไฟฟ้า",
+    "วิศวกรรมคอมพิวเตอร์(ต่อเนื่อง)"
+  ],
+  "ระดับปริญญาโท (วศ.ม.)": [
+    "วิศวกรรมเครื่องกล",
+    "วิศวกรรมโยธา",
+    "วิศวกรรมไฟฟ้าและคอมพิวเตอร์"
+  ],
+  "ระดับปริญญาเอก (ปร.ด.)": [
+    "วิศวกรรมเครื่องกล",
+    "วิศวกรรมโยธา",
+    "วิศวกรรมไฟฟ้าและคอมพิวเตอร์"
+  ]
+};
+
+// ==========================================
+// ฟังก์ชัน: อัปเดตสาขาวิชาเมื่อเปลี่ยนระดับปริญญา
+// ==========================================
+function updateMajors() {
+  const degreeSelect = document.getElementById("thesisDegree");
+  const majorSelect = document.getElementById("thesisMajor");
+  if (!degreeSelect || !majorSelect) return;
+  const selectedDegree = degreeSelect.value;
+
+  majorSelect.innerHTML = '<option value="" disabled selected>-- เลือกสาขาวิชา --</option>';
+  
+  if (selectedDegree && majorsByDegree[selectedDegree]) {
+    majorSelect.disabled = false;
+    majorSelect.classList.remove("bg-gray-100");
+    majorsByDegree[selectedDegree].forEach(function(major) {
+      const option = document.createElement("option");
+      option.value = major;
+      option.textContent = major;
+      majorSelect.appendChild(option);
+    });
+  } else {
+    majorSelect.disabled = true;
+    majorSelect.classList.add("bg-gray-100");
+    majorSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกระดับปริญญาก่อน --</option>';
+  }
+}
+</script>

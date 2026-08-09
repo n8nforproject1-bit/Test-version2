@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flipbook Reader | คณะวิศวกรรมศาสตร์ มมส</title>
+    
+    <!-- นำเข้าไลบรารีสไตล์และการจัดวางหน้าจอ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   
+    <!-- นำเข้าไลบรารีหลักสำหรับการเรนเดอร์ PDF และการทำ Flipbook -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: Sarabun, sans-serif; 
+            background-color: #2c2c2c; 
+            user-select: none;
+        }
+       
+        /* สไตล์กำหนดขนาดกล่อง Flipbook หลัก */
+        .flipbook-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 680px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        #flipbook {
+            width: 100%;
+            height: 100%;
+            transition: transform 0.2s ease-in-out; /* เอฟเฟกต์แอนิเมชันตอนกดซูม */
+        }
+        
+        /* สไตล์แผ่นกระดาษแต่ละหน้า */
+        .page {
+            padding: 0;
+            background-color: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .page-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+        }
+
+        /* ========================================================= */
+        /* 🆕 สไตล์สำหรับโหมดเลื่อนอ่านแนวตั้ง (Scroll Mode)            */
+        /* ========================================================= */
+        #scrollWrapper {
+            overflow: hidden;
+        }
+
+        #scrollView {
+            scroll-behavior: smooth;
+        }
+
+        #scrollView::-webkit-scrollbar {
+            width: 10px;
+        }
+        #scrollView::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        #scrollView::-webkit-scrollbar-thumb {
+            background: #800020;
+            border-radius: 5px;
+        }
+
+        #scrollPagesInner {
+            transition: transform 0.2s ease-in-out; /* เอฟเฟกต์แอนิเมชันตอนกดซูมในโหมดเลื่อน */
+        }
+
+        .scroll-page {
+            position: relative;
+            width: 100%;
+            max-width: 850px;
+            background-color: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+            margin: 0 auto;
+        }
+
+        .scroll-page canvas {
+            width: 100% !important;
+            height: auto !important;
+            display: block;
+            object-fit: contain;
+        }
+
+        .scroll-page-num {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            background: rgba(0,0,0,0.6);
+            color: #FFD700;
+            font-size: 11px;
+            padding: 2px 9px;
+            border-radius: 10px;
+            font-family: monospace;
+            pointer-events: none;
+        }
+
+        /* ปุ่มสลับโหมดที่แถบบาร์บน */
+        #modeToggleGroup button {
+            cursor: pointer;
+        }
+        #modeToggleGroup button.mode-active {
+            background-color: #FFD700;
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+        #modeToggleGroup button.mode-inactive {
+            background-color: transparent;
+            color: #ffffff;
+            font-weight: 500;
+        }
+        #modeToggleGroup button.mode-inactive:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body class="text-white overflow-hidden flex flex-col h-screen text-base">
+
+    <!-- แถบควบคุมด้านบน (Top Navigation Bar สีเลือดหมู มมส) -->
+    <div class="bg-[#800020] px-4 py-3 border-b-2 border-[#FFD700] flex justify-between items-center shadow-lg z-50">
+        <button onclick="goBackToArchive();" class="text-white hover:text-gray-200 flex items-center space-x-2 text-sm bg-[#600018] hover:bg-[#500014] px-3 py-1.5 rounded transition-colors shadow">
+            <i class="fa-solid fa-arrow-left text-[#FFD700]"></i> <span>กลับหน้าหลักคลังวิทยานิพนธ์</span>
+        </button>
+        
+        <h1 id="bookTitle" class="text-xs sm:text-base font-bold truncate max-w-xs md:max-w-xl text-center text-[#FFD700]">
+            กำลังดาวน์โหลดข้อมูลเอกสาร...
+        </h1>
+        
+        <div class="flex items-center space-x-3 text-xs sm:text-sm">
+            <!-- 🆕 กลุ่มปุ่มสลับโหมดการอ่าน: พลิกหน้า (flip) / เลื่อนอ่าน (scroll) -->
+            <div class="flex items-center bg-black/40 rounded border border-white/10 overflow-hidden" id="modeToggleGroup">
+                <button id="btnModeFlip" class="mode-active px-3 py-1.5 flex items-center space-x-1.5 transition-colors" title="โหมดพลิกหนังสือ 3 มิติ">
+                    <i class="fa-solid fa-book-open"></i><span class="hidden md:inline">พลิกหน้า</span>
+                </button>
+                <button id="btnModeScroll" class="mode-inactive px-3 py-1.5 flex items-center space-x-1.5 transition-colors" title="โหมดเลื่อนอ่านแนวตั้ง">
+                    <i class="fa-solid fa-scroll"></i><span class="hidden md:inline">เลื่อนอ่าน</span>
+                </button>
+            </div>
+            <!-- แสดงเฉพาะตัวระบุหน้า (ลบดรอปดาวน์เลือกโหมดแนวตั้งออกแล้ว) -->
+            <span id="pageIndicator" class="bg-black/40 px-3 py-1.5 rounded border border-white/10 font-mono">หน้า: 0 / 0</span>
+        </div>
+    </div>
+    
+    <!-- โซนแสดงผลตัวเล่ม Flipbook (Workspace) -->
+    <div class="flex-grow flex items-center justify-center p-4 relative overflow-auto">
+        <!-- หน้าจอหมุนโหลดระหว่างเตรียมไฟล์ PDF -->
+        <div id="loader" class="text-center absolute z-50 bg-[#2c2c2c]/90 p-6 rounded-lg shadow-xl border border-gray-700">
+            <div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-[#FFD700] mx-auto mb-4"></div>
+            <p class="text-gray-200 text-sm font-medium">กำลังประมวลผลระบบพลิกหน้ากระดาษแบบ 3D...</p>
+            <p class="text-gray-400 text-xs mt-1">กรุณารอสักครู่ เอกสารกำลังถูกจัดเตรียม</p>
+        </div>
+        
+        <!-- กล่องห่อหุ้มโมเดลสมุดพลิก -->
+        <div class="flipbook-container hidden" id="bookWrapper">
+            <div id="flipbook">
+                <!-- หน้ากระดาษ HTML & Canvas จะถูกสร้างและควบคุมที่นี่ -->
+            </div>
+        </div>
+
+        <!-- 🆕 กล่องห่อหุ้มโหมดเลื่อนอ่านแนวตั้ง (เหมือนอ่านไฟล์ PDF ทั่วไป) -->
+        <div class="flipbook-container hidden" id="scrollWrapper">
+            <div id="scrollView" class="w-full h-full overflow-y-auto overflow-x-hidden bg-[#1a1a1a] rounded shadow-inner px-2 sm:px-4">
+                <div id="scrollPagesInner" class="flex flex-col items-center gap-4 py-4">
+                    <!-- หน้ากระดาษของโหมดเลื่อนอ่านจะถูกสร้างที่นี่ -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- แถบเครื่องมือควบคุมการอ่านด้านล่างสุด (Bottom Action Bar) -->
+    <div class="bg-gray-900/95 py-3.5 px-4 flex justify-center items-center space-x-4 border-t border-gray-800 shadow-2xl z-50">
+        <button id="btnPrev" class="bg-gray-700 hover:bg-gray-600 active:bg-gray-800 text-white font-medium px-4 py-2 rounded text-sm transition-colors flex items-center space-x-1.5 shadow">
+            <i class="fa-solid fa-chevron-left"></i> <span>หน้าก่อนหน้า</span>
+        </button>
+        
+        <!-- 🔍 ปุ่มปรับขนาดการซูม (ขยายเนื้อหาดูตัวอักษรเล็กๆ ได้ชัดเจน) -->
+        <button id="btnZoomOut" class="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white p-2.5 rounded text-sm transition-colors shadow border border-gray-700" title="ซูมออก">
+            <i class="fa-solid fa-magnifying-glass-minus"></i>
+        </button>
+
+        <!-- 🆕 ช่องค้นหา/กระโดดไปยังแผ่นที่ต้องการ -->
+        <div class="flex items-center bg-gray-800 border border-gray-700 rounded overflow-hidden shadow">
+            <input type="number" id="pageJumpInput" min="1" placeholder="ไปแผ่นที่..." class="w-20 sm:w-28 bg-gray-800 text-white text-sm px-3 py-2 outline-none placeholder-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" title="พิมพ์หมายเลขแผ่นแล้วกด Enter">
+            <button id="btnPageJump" class="bg-gray-700 hover:bg-gray-600 active:bg-gray-800 text-[#FFD700] px-3 py-2 text-sm transition-colors" title="ไปยังแผ่นที่ระบุ">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
+
+        <button id="btnZoomIn" class="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white p-2.5 rounded text-sm transition-colors shadow border border-gray-700" title="ซูมเข้า">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+        </button>
+        
+        <button id="btnNext" class="bg-[#FFD700] hover:bg-[#e6c200] active:bg-[#ccac00] text-gray-950 font-bold px-5 py-2 rounded text-sm transition-all flex items-center space-x-1.5 shadow-md">
+            <span>หน้าถัดไป</span> <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+    
+    <!-- ส่วนควบคุมการประมวลผลลอจิกเบื้องหลัง -->
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // 🆕 ฟังก์ชันกลับไปยังหน้าหลักคลังวิทยานิพนธ์ (แก้ปัญหา window.close() ใช้ไม่ได้)
+        // หมายเหตุสำคัญ: Google Apps Script จะเรนเดอร์หน้าเว็บของเราอยู่ภายใน iframe แซนด์บ็อกซ์
+        // ที่อยู่คนละโดเมนกับ URL จริงของเว็บแอปเสมอ (เช่น n-XXXX.googleusercontent.com)
+        // ทำให้ "อ่านค่า" window.top.location.href ไม่ได้เลยจากนโยบาย Same-Origin ของเบราว์เซอร์
+        // (แม้จะ "เขียน" เพื่อสั่งนำทางได้ก็ตาม) วิธีแก้ที่ถูกต้องคือให้เซิร์ฟเวอร์ (Code.gs)
+        // ส่ง URL หน้าหลักที่แท้จริงมาให้ตรงๆ ผ่านตัวแปร homeUrl แล้วค่อยสั่งนำทางไปเลย
+        function goBackToArchive() {
+            if (homeUrl && homeUrl.indexOf('http') === 0) {
+                window.top.location.href = homeUrl;
+            } else {
+                // สำรอง เผื่อกรณีดึง URL จากเซิร์ฟเวอร์ไม่สำเร็จ ให้ลองย้อนกลับด้วยประวัติเบราว์เซอร์แทน
+                window.top.history.back();
+            }
+        }
+        
+        // ตัวแปรสถานะระบบหลัก
+        let pageFlip = null;
+        let pdfDoc = null;
+        let totalPages = 0;
+        let currentScale = 1.0; 
+
+        // 🆕 ตัวแปรสถานะสำหรับระบบสลับโหมดการอ่าน
+        let currentMode = 'flip'; // 'flip' = พลิกหน้าหนังสือ, 'scroll' = เลื่อนอ่านแนวตั้ง
+        let currentScrollPage = 1;
+        let scrollObserver = null;
+        let scrollIndicatorTimer = null;
+        
+        const flipbookEl = document.getElementById('flipbook');
+        const scrollPagesInnerEl = document.getElementById('scrollPagesInner');
+        const scrollViewEl = document.getElementById('scrollView');
+        const btnModeFlip = document.getElementById('btnModeFlip');
+        const btnModeScroll = document.getElementById('btnModeScroll');
+        const pageJumpInput = document.getElementById('pageJumpInput');
+        const btnPageJump = document.getElementById('btnPageJump');
+        const base64Data = "<?!= pdfBase64 ?>";
+        const docTitle = "<?!= bookTitle ?>";
+        const homeUrl = "<?!= homeUrl ?>"; // 🆕 URL หน้าหลักของเว็บแอป ส่งมาจากเซิร์ฟเวอร์โดยตรง (Code.gs)
+       
+        document.getElementById('bookTitle').textContent = docTitle;
+        
+        // ตรวจสอบความถูกต้องของสตรีมไฟล์ข้อมูล
+        if (!base64Data || base64Data.startsWith("ERROR") || base64Data === "null") {
+            document.getElementById('loader').innerHTML = '<p class="text-red-400 font-bold">⚠️ ไม่สามารถเปิดอ่านไฟล์วิทยานิพนธ์ฉบับนี้ได้ <br><span class="text-xs text-gray-400 font-normal">โปรดตรวจสอบสถานะการแชร์ไฟล์ในคลัง Google Drive ของคุณ</span></p>';
+        } else {
+            initFlipbook(base64Data);
+        }
+        
+        // ⚡ ระบบการเข้าคิวเรนเดอร์อัจฉริยะ (Sequential Render Queue Engine)
+        let renderQueue = [];
+        let isRendering = false;
+        
+        function queueRenderPage(pageNum, canvas, prioritize = false) {
+            if (!canvas || canvas.dataset.rendered === "true") return;
+            renderQueue = renderQueue.filter(item => item.pageNum !== pageNum || item.canvas !== canvas);
+            if (prioritize) {
+                renderQueue.unshift({ pageNum, canvas });
+            } else {
+                renderQueue.push({ pageNum, canvas });
+            }
+            processQueue();
+        }
+        
+        async function processQueue() {
+            if (isRendering || renderQueue.length === 0) return;
+            isRendering = true;
+            const task = renderQueue.shift();
+            try {
+                await doActualRender(task.pageNum, task.canvas);
+            } catch (err) {
+                console.error("การเรนเดอร์หน้าขัดข้อง: " + task.pageNum, err);
+            }
+            isRendering = false;
+            processQueue();
+        }
+        
+        async function doActualRender(pageNum, canvas) {
+            if (canvas.dataset.rendered === "true") return;
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.6 }); // เพิ่มความชัดระดับ HD
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            canvas.dataset.rendered = "true";
+        }
+        
+        // ฟังก์ชันสร้างและเชื่อมโยงโครงสร้างหน้าตั้งแต่เปิดเว็บครั้งแรก
+        async function initFlipbook(base64) {
+            try {
+                const binaryString = window.atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+               
+                pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+                totalPages = pdfDoc.numPages;
+               
+                // วนลูปสร้างองค์ประกอบหน้ากระดาษและ Canvas ลงใน DOM โดยตรง
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    // --- โครงสร้างสำหรับโหมดพลิกหนังสือ (เดิม) ---
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'page';
+                   
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'page-content';
+                   
+                    const canvas = document.createElement('canvas');
+                    canvas.id = `canvas-p${pageNum}`;
+                   
+                    contentDiv.appendChild(canvas);
+                    pageDiv.appendChild(contentDiv);
+                    flipbookEl.appendChild(pageDiv);
+
+                    // --- 🆕 โครงสร้างสำหรับโหมดเลื่อนอ่านแนวตั้ง (ใช้ canvas แยกอิสระต่อโหมด) ---
+                    const scrollPageDiv = document.createElement('div');
+                    scrollPageDiv.className = 'scroll-page';
+                    scrollPageDiv.id = `scroll-page-p${pageNum}`;
+                    scrollPageDiv.dataset.pageNum = pageNum;
+
+                    const scrollCanvas = document.createElement('canvas');
+                    scrollCanvas.id = `scroll-canvas-p${pageNum}`;
+
+                    const scrollLabel = document.createElement('div');
+                    scrollLabel.className = 'scroll-page-num';
+                    scrollLabel.textContent = `${pageNum} / ${totalPages}`;
+
+                    scrollPageDiv.appendChild(scrollCanvas);
+                    scrollPageDiv.appendChild(scrollLabel);
+                    scrollPagesInnerEl.appendChild(scrollPageDiv);
+                }
+               
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('bookWrapper').classList.remove('hidden');
+
+                // 🆕 ตั้งค่าขอบเขตช่องค้นหาแผ่นให้ตรงกับจำนวนแผ่นทั้งหมด
+                pageJumpInput.max = totalPages;
+                pageJumpInput.placeholder = `ไปแผ่นที่... (1-${totalPages})`;
+                
+                // เริ่มรันระบบ PageFlip แนวนอนทันที
+                initHorizontalPageFlip(0);
+               
+                // ทยอยสั่งโหลดภาพความละเอียดสูงเก็บลงแคชแคนวาสพื้นหลัง (สำหรับโหมดพลิกหน้า)
+                for (let p = 1; p <= totalPages; p++) {
+                    queueRenderPage(p, document.getElementById(`canvas-p${p}`), false);
+                }
+               
+            } catch (error) {
+                console.error("ระบบทำงานล้มเหลว:", error);
+                document.getElementById('loader').innerHTML = '<p class="text-red-400">⚠️ เกิดข้อผิดพลาดในการโหลดระบบโครงสร้าง Digital Book</p>';
+            }
+        }
+
+        // ฟังก์ชันเริ่มต้นรันระบบ PageFlip แนวนอน
+        function initHorizontalPageFlip(startPageIdx) {
+            pageFlip = new St.PageFlip(flipbookEl, {
+                width: 500,
+                height: 700,
+                size: "stretch",
+                minWidth: 300,
+                maxWidth: 1000,
+                minHeight: 400,
+                maxHeight: 1400,
+                drawShadow: true,
+                flippingTime: 700,
+                usePortrait: true,
+                startPage: startPageIdx
+            });
+           
+            pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+            updatePageIndicator();
+           
+            // บังคับสั่งประมวลผลภาพสองหน้าแรกตรงหน้าจอทันทีเพื่อลดอาการหน่วงขาว
+            const currentIndex = pageFlip.getCurrentPageIndex();
+            const targetPage1 = currentIndex === 0 ? 1 : currentIndex * 2;
+            const targetPage2 = targetPage1 + 1;
+            if (targetPage1 <= totalPages) queueRenderPage(targetPage1, document.getElementById(`canvas-p${targetPage1}`), true);
+            if (targetPage2 <= totalPages) queueRenderPage(targetPage2, document.getElementById(`canvas-p${targetPage2}`), true);
+           
+            pageFlip.on('flip', (e) => {
+                updatePageIndicator();
+                const currentIndex = pageFlip.getCurrentPageIndex();
+                const targetPage1 = currentIndex === 0 ? 1 : currentIndex * 2;
+                const targetPage2 = targetPage1 + 1;
+               
+                if (targetPage1 <= totalPages) queueRenderPage(targetPage1, document.getElementById(`canvas-p${targetPage1}`), true);
+                if (targetPage2 <= totalPages) queueRenderPage(targetPage2, document.getElementById(`canvas-p${targetPage2}`), true);
+            });
+        }
+
+        // ========================================================= //
+        // 🆕 ระบบสลับโหมดการอ่าน: พลิกหน้าหนังสือ (flip) <-> เลื่อนอ่าน (scroll)
+        // ========================================================= //
+
+        function setActiveModeButtons(mode) {
+            if (mode === 'flip') {
+                btnModeFlip.classList.add('mode-active');
+                btnModeFlip.classList.remove('mode-inactive');
+                btnModeScroll.classList.add('mode-inactive');
+                btnModeScroll.classList.remove('mode-active');
+            } else {
+                btnModeScroll.classList.add('mode-active');
+                btnModeScroll.classList.remove('mode-inactive');
+                btnModeFlip.classList.add('mode-inactive');
+                btnModeFlip.classList.remove('mode-active');
+            }
+        }
+
+        function switchToFlipMode() {
+            if (currentMode === 'flip' || !pdfDoc) return;
+            currentMode = 'flip';
+
+            document.getElementById('scrollWrapper').classList.add('hidden');
+            document.getElementById('bookWrapper').classList.remove('hidden');
+
+            disconnectScrollObserver();
+            setActiveModeButtons('flip');
+
+            // รีเซ็ตซูมกลับเป็นค่าปกติเมื่อสลับโหมด
+            currentScale = 1.0;
+            flipbookEl.style.transformOrigin = 'center center';
+            flipbookEl.style.transform = 'scale(1)';
+            scrollPagesInnerEl.style.transform = 'scale(1)';
+
+            if (pageFlip) updatePageIndicator();
+        }
+
+        function switchToScrollMode() {
+            if (currentMode === 'scroll' || !pdfDoc) return;
+            currentMode = 'scroll';
+
+            document.getElementById('bookWrapper').classList.add('hidden');
+            document.getElementById('scrollWrapper').classList.remove('hidden');
+
+            setActiveModeButtons('scroll');
+
+            // รีเซ็ตซูมกลับเป็นค่าปกติเมื่อสลับโหมด
+            currentScale = 1.0;
+            flipbookEl.style.transform = 'scale(1)';
+            scrollPagesInnerEl.style.transformOrigin = 'top center';
+            scrollPagesInnerEl.style.transform = 'scale(1)';
+
+            // เรนเดอร์หน้าแรกๆ ก่อนทันทีเพื่อความรวดเร็ว แล้วให้ตัวสังเกตการเลื่อนจัดการหน้าที่เหลือ
+            for (let p = 1; p <= Math.min(3, totalPages); p++) {
+                queueRenderPage(p, document.getElementById(`scroll-canvas-p${p}`), true);
+            }
+
+            setupScrollObserver();
+            updateScrollPageIndicator();
+        }
+
+        // ตัวสังเกตการเลื่อนหน้าจอ (Lazy Render) สำหรับโหมดเลื่อนอ่าน
+        function setupScrollObserver() {
+            disconnectScrollObserver();
+            const options = {
+                root: scrollViewEl,
+                rootMargin: '600px 0px 600px 0px',
+                threshold: 0.01
+            };
+            scrollObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const pNum = parseInt(entry.target.dataset.pageNum, 10);
+                        const c = document.getElementById(`scroll-canvas-p${pNum}`);
+                        queueRenderPage(pNum, c, true);
+                    }
+                });
+            }, options);
+            document.querySelectorAll('.scroll-page').forEach(el => scrollObserver.observe(el));
+        }
+
+        function disconnectScrollObserver() {
+            if (scrollObserver) {
+                scrollObserver.disconnect();
+                scrollObserver = null;
+            }
+        }
+
+        // อัปเดตตัวเลขหน้าปัจจุบันตามตำแหน่งที่เลื่อนอยู่ในโหมดเลื่อนอ่าน
+        function updateScrollPageIndicator() {
+            if (currentMode !== 'scroll' || totalPages === 0) return;
+            const containerTop = scrollViewEl.getBoundingClientRect().top;
+            let closestPage = 1;
+            let closestDist = Infinity;
+            document.querySelectorAll('.scroll-page').forEach(el => {
+                const dist = Math.abs(el.getBoundingClientRect().top - containerTop);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestPage = parseInt(el.dataset.pageNum, 10);
+                }
+            });
+            currentScrollPage = closestPage;
+            document.getElementById('pageIndicator').textContent = `หน้า: ${closestPage} / ${totalPages}`;
+        }
+
+        function scrollToPage(pageNum) {
+            const el = document.getElementById(`scroll-page-p${pageNum}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 🆕 ฟังก์ชันกระโดดไปยัง "แผ่นที่" ระบุ (นับตามลำดับแผ่นจริง ไม่ใช่เลขหน้าที่พิมพ์ในเอกสาร) รองรับทั้งสองโหมด
+        function jumpToPage() {
+            if (!pdfDoc || totalPages === 0) return;
+            let val = parseInt(pageJumpInput.value, 10);
+            if (isNaN(val)) return;
+            if (val < 1) val = 1;
+            if (val > totalPages) val = totalPages;
+
+            if (currentMode === 'flip') {
+                if (pageFlip) pageFlip.flip(val - 1); // pageFlip นับแผ่นแบบ 0-based
+            } else {
+                scrollToPage(val);
+            }
+
+            pageJumpInput.value = '';
+            pageJumpInput.blur();
+        }
+
+        btnPageJump.addEventListener('click', jumpToPage);
+        pageJumpInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') jumpToPage();
+        });
+
+        scrollViewEl.addEventListener('scroll', () => {
+            if (currentMode !== 'scroll') return;
+            clearTimeout(scrollIndicatorTimer);
+            scrollIndicatorTimer = setTimeout(updateScrollPageIndicator, 100);
+        });
+
+        btnModeFlip.addEventListener('click', switchToFlipMode);
+        btnModeScroll.addEventListener('click', switchToScrollMode);
+        
+        // 🖱️ จัดการ Event ปุ่มกดแถบควบคุมด้านล่าง (รองรับทั้งสองโหมด)
+        document.getElementById('btnPrev').addEventListener('click', () => {
+            if (currentMode === 'flip') {
+                if (pageFlip) pageFlip.flipPrev();
+            } else {
+                scrollToPage(Math.max(1, currentScrollPage - 1));
+            }
+        });
+        
+        document.getElementById('btnNext').addEventListener('click', () => {
+            if (currentMode === 'flip') {
+                if (pageFlip) pageFlip.flipNext();
+            } else {
+                scrollToPage(Math.min(totalPages, currentScrollPage + 1));
+            }
+        });
+        
+        // 🔍 ฟังก์ชันปุ่มซูมเข้า - ซูมออก (รองรับทั้งสองโหมด)
+        document.getElementById('btnZoomIn').addEventListener('click', () => {
+            if (currentScale < 1.8) {
+                currentScale += 0.15;
+                applyZoom();
+            }
+        });
+        
+        document.getElementById('btnZoomOut').addEventListener('click', () => {
+            if (currentScale > 0.6) {
+                currentScale -= 0.15;
+                applyZoom();
+            }
+        });
+
+        function applyZoom() {
+            if (currentMode === 'flip') {
+                flipbookEl.style.transformOrigin = 'center center';
+                flipbookEl.style.transform = `scale(${currentScale})`;
+            } else {
+                scrollPagesInnerEl.style.transformOrigin = 'top center';
+                scrollPagesInnerEl.style.transform = `scale(${currentScale})`;
+            }
+        }
+        
+        // ฟังก์ชันแสดงผลตัวเลขหน้าด้านบนแถบสีเลือดหมู (โหมดพลิกหน้า)
+        function updatePageIndicator() {
+            if (!pageFlip || currentMode !== 'flip') return;
+            const current = pageFlip.getCurrentPageIndex();
+            const total = pdfDoc.numPages;
+           
+            if (pageFlip.getOrientation() === 'landscape') {
+                if (current === 0) {
+                    document.getElementById('pageIndicator').textContent = `หน้าปก (1) / ${total}`;
+                } else {
+                    const pageRight = current * 2;
+                    const pageLeft = pageRight - 1;
+                    document.getElementById('pageIndicator').textContent = `หน้า: ${pageLeft}-${Math.min(pageRight, total)} / ${total}`;
+                }
+            } else {
+                document.getElementById('pageIndicator').textContent = `หน้า: ${current + 1} / ${total}`;
+            }
+        }
+    </script>
+</body>
+</html>

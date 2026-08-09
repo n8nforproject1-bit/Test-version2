@@ -1,0 +1,97 @@
+<!-- เพิ่ม ID "admin-card-container" สำหรับทำสไตล์สลายสีขาวในโหมดมืดได้อย่างสมบูรณ์แบบ -->
+<div id="admin-card-container" class="max-w-6xl mx-auto border border-gray-200 dark:border-gray-700 rounded-lg shadow-md bg-white dark:bg-gray-800 p-6 transition-colors duration-300">
+
+  <!-- 🔒 ส่วนที่ 1: หน้าจอเข้าสู่ระบบสำหรับแอดมิน -->
+  <div id="admin-login-box" class="max-w-md mx-auto text-center py-8">
+    <div class="w-16 h-16 bg-[#800020]/10 dark:bg-amber-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+      <i class="fa-solid fa-lock text-3xl text-[#800020] dark:text-amber-400"></i>
+    </div>
+    <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2">เข้าสู่ระบบผู้ดูแลระบบ (Admin Login)</h3>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">เฉพาะเจ้าหน้าที่และแอดมินคณะวิศวกรรมศาสตร์ มมส เท่านั้น</p>
+
+    <div class="space-y-4 text-left">
+      <div>
+        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">รหัสผ่านแอดมิน (Password)</label>
+        <input type="password" id="adminPassword" class="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#800020] dark:focus:ring-amber-400 focus:outline-none" placeholder="••••••••">
+      </div>
+      <button onclick="checkAdminLogin()" class="w-full bg-[#800020] hover:bg-[#600018] text-white py-2.5 rounded-md font-bold transition-colors flex items-center justify-center shadow-md">
+        <i class="fa-solid fa-right-to-bracket mr-2"></i> ยืนยันเข้าสู่ระบบ
+      </button>
+    </div>
+  </div>
+
+  <!-- 📊 ส่วนที่ 2: หน้าจอ Dashboard แอดมิน (จะซ่อนไว้เริ่มต้น และแสดงเมื่อ Login ผ่านเท่านั้น) -->
+  <div id="admin-dashboard-box" style="display: none;">
+    <div class="flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4 mb-6">
+      <h3 class="text-xl font-bold text-[#800020] dark:text-amber-400 flex items-center mb-2 sm:mb-0">
+        <i class="fa-solid fa-user-shield mr-2"></i> ระบบอนุมัติวิทยานิพนธ์ (เฉพาะสถานะรอตรวจสอบ)
+      </h3>
+      <button onclick="logoutAdmin()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow">
+        <i class="fa-solid fa-arrow-right-from-bracket mr-1.5"></i> ออกจากระบบ
+      </button>
+    </div>
+
+    <!-- 🆕 สถิติภาพรวม -->
+    <div id="adminStatsBox" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-amber-400 text-gray-900 rounded-full pl-3 pr-6 py-3 shadow-md">
+        <div class="w-11 h-11 flex items-center justify-center bg-white/30 rounded-full shrink-0">
+          <i class="fa-solid fa-file-lines text-xl"></i>
+        </div>
+        <span id="statPending" class="text-3xl font-extrabold text-center">0</span>
+        <span class="font-bold text-lg text-right">รออนุมัติ</span>
+      </div>
+      
+      <div class="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-emerald-600 text-white rounded-full pl-3 pr-6 py-3 shadow-md">
+        <div class="w-11 h-11 flex items-center justify-center bg-white/25 rounded-full shrink-0">
+          <i class="fa-solid fa-circle-check text-xl"></i>
+        </div>
+        <span id="statApproved" class="text-3xl font-extrabold text-center">0</span>
+        <span class="font-bold text-lg text-right">อนุมัติแล้ว</span>
+      </div>
+
+      <!-- 🆕 การ์ดแสดงจำนวนรายการ "ไม่อนุมัติ" ดีไซน์สีโรสพาสเทลสุภาพคมชัด -->
+      <div class="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-rose-600 text-white rounded-full pl-3 pr-6 py-3 shadow-md">
+        <div class="w-11 h-11 flex items-center justify-center bg-white/20 rounded-full shrink-0">
+          <i class="fa-solid fa-circle-xmark text-xl"></i>
+        </div>
+        <span id="statRejected" class="text-3xl font-extrabold text-center">0</span>
+        <span class="font-bold text-lg text-right">ไม่อนุมัติ</span>
+      </div>
+
+      <div class="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-[#800020] text-white rounded-full pl-3 pr-6 py-3 shadow-md">
+        <div class="w-11 h-11 flex items-center justify-center bg-white/20 rounded-full shrink-0">
+          <i class="fa-solid fa-book-open text-xl"></i>
+        </div>
+        <span id="statTotal" class="text-3xl font-extrabold text-center">0</span>
+        <span class="font-bold text-lg text-right">วิทยานิพนธ์ทั้งหมด</span>
+      </div>
+    </div>
+
+    <!-- ตารางแสดงผลชิ้นงานรอตรวจสอบ -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-[#800020] text-white">
+            <th class="p-3 border border-gray-200 dark:border-gray-700">ชื่อผลงาน (TH)</th>
+            <th class="p-3 border border-gray-200 dark:border-gray-700">ผู้จัดทำ</th>
+            <th class="p-3 border border-gray-200 dark:border-gray-700">ระดับปริญญา</th>
+            <th class="p-3 border border-gray-200 dark:border-gray-700">สาขาวิชา</th> 
+            <th class="p-3 border border-gray-200 dark:border-gray-700">ไฟล์เล่ม</th>
+            <th class="p-3 border border-gray-200 dark:border-gray-700 text-center">การจัดการ (Action)</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody" class="text-gray-800 dark:text-gray-200">
+          <tr>
+            <td class="p-4 text-center text-gray-500" colspan="6">
+              <div class="flex flex-col items-center justify-center space-y-2">
+                <i class="fa-solid fa-spinner animate-spin text-3xl text-[#800020] dark:text-amber-400"></i>
+                <span>กำลังดึงข้อมูลงานที่รอตรวจสอบ...</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
